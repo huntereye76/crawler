@@ -135,7 +135,8 @@ with sync_playwright() as p:
 
                 start = page_no * 10
                 query = f"site:t.me {keyword}"
-                url = f"https://duckduckgo.com/?q={urllib.parse.quote(query)}&s={start}"
+                # url = f"https://duckduckgo.com/?q={urllib.parse.quote(query)}&s={start}"
+                url = f"https://duckduckgo.com/html/?q={urllib.parse.quote(query)}&s={start}"
 
                 print("Searching:", url)
 
