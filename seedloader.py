@@ -11,7 +11,7 @@ from keywords import keywords
 # SETTINGS
 # ==============================
 
-EXPORT_TXT = True
+EXPORT_TXT = False
 SAVE_TO_DB = True
 
 DB_URL = "postgresql://neondb_owner:npg_O8yn7oWlKCZM@ep-shy-brook-a109nwqt-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
