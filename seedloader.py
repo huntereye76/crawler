@@ -324,6 +324,9 @@ with sync_playwright() as p:
                         page.mouse.wheel(0, 500)
                         time.sleep(1)
 
+                        page.screenshot(path=f"debug_{keyword}_{page_no}.png")
+                        print(page.content()[:1000])    
+
                         elements = page.query_selector_all('a[href*="t.me"]')
                         break
 
