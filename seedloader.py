@@ -178,8 +178,7 @@ with sync_playwright() as p:
                                     
                                     
                                     
-                    # print("Found:", len(new_links), "new links")  #temp
-                    print("Total on page:", len(elements))
+                  
 
                     # 🛡️ Anti-block delay
                     time.sleep(random.uniform(1, 3))
