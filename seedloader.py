@@ -114,11 +114,17 @@ with sync_playwright() as p:
             headless=True,
             args=["--no-sandbox", "--disable-dev-shm-usage"]
         )
-        page = browser.new_page()
+        
+        context = browser.new_context(
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36",
+            viewport={"width": 1280, "height": 800}
+        )
+        
+        page = context.new_page()
 
         # 🔥 Block unnecessary resources
         page.route("**/*", lambda route: route.abort()
-                   if route.request.resource_type in ["image", "stylesheet", "font", "media"]
+                   if route.request.resource_type in ["image", "font", "media"]
                    else route.continue_())
 
         for keyword in batch:
@@ -133,13 +139,25 @@ with sync_playwright() as p:
 
                 print("Searching:", url)
 
-                try:
-                    page.goto(url, timeout=30000)
-                    
-                    # wait for real results (IMPORTANT FIX)
-                    page.wait_for_selector('a[data-testid="result-title-a"]', timeout=10000)
-
-                    elements = page.query_selector_all('a[data-testid="result-title-a"]')
+                elements = []
+                
+                for attempt in range(3):
+                    try:
+                        page.goto(url, timeout=30000)
+                
+                        page.wait_for_timeout(3000)
+                
+                        page.wait_for_selector('a[href*="t.me"]', timeout=15000)
+                
+                        elements = page.query_selector_all('a[href*="t.me"]')
+                
+                        break  # success → exit retry loop
+                
+                    except Exception as e:
+                        print(f"Retry {attempt+1} failed:", e)
+                
+                        if attempt == 2:
+                            print("Skipping this page...")
 
                     new_links = []
 
