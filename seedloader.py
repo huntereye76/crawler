@@ -292,7 +292,7 @@ with sync_playwright() as p:
 
         # ✅ CORRECT STEALTH FOR YOUR VERSION
         stealth = Stealth()
-        stealth.apply_stealth(page)
+        stealth.apply_stealth_sync(page)
 
         # Block heavy resources (faster scraping)
         page.route("**/*", lambda route: route.abort()
