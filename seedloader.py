@@ -200,7 +200,7 @@
 
 
 from playwright.sync_api import sync_playwright
-from playwright_stealth import stealth_page  # NEW: Added stealth
+from playwright_stealth import stealth # NEW: Added stealth
 import urllib.parse
 import re
 import psycopg2
@@ -295,7 +295,7 @@ with sync_playwright() as p:
         )
         
         page = context.new_page()
-        stealth_sync(page) # NEW: Apply stealth to this page
+        stealth(page)  # NEW: Apply stealth to this page
 
         # Block unnecessary resources (careful: blocking too much can trigger bot detection)
         page.route("**/*", lambda route: route.abort()
