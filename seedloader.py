@@ -151,44 +151,30 @@ with sync_playwright() as p:
                 
                         elements = page.query_selector_all('a[href*="t.me"]')
                 
-                        break  # success → exit retry loop
+                        break
                 
                     except Exception as e:
                         print(f"Retry {attempt+1} failed:", e)
                 
                         if attempt == 2:
                             print("Skipping this page...")
-
-                    new_links = []
-
-                    for el in elements:
-                        link = el.get_attribute("href")
-
-                        if link and "t.me/" in link:
-                            if link.count("/") == 3 and "+" not in link and "joinchat" not in link:
-
-                                if link not in found_links:
-                                    found_links.add(link)
-                                    new_links.append(link)
-                                    
-                                    
-                    # elements = page.query_selector_all('a[data-testid="result-title-a"]')
-
-                    # print("\n--- ALL LINKS ON THIS PAGE ---")
-
-                    # new_links = []
-
-                    # for el in elements:
-                        # link = el.get_attribute("href")
-
-                        # print(link)   # 👈 DEBUG LINE (ADD THIS)
-
-                        # if link and "t.me/" in link:
-                            # if link.count("/") == 3 and "+" not in link and "joinchat" not in link:
-
-                                # if link not in found_links:
-                                    # found_links.add(link)
-                                    # new_links.append(link)                
+                
+                # ✅ OUTSIDE retry loop
+                new_links = []
+                
+                for el in elements:
+                    link = el.get_attribute("href")
+                
+                    if link and "t.me/" in link:
+                        if link.count("/") == 3 and "+" not in link and "joinchat" not in link:
+                
+                            if link not in found_links:
+                                found_links.add(link)
+                                new_links.append(link)
+                
+                print("Total on page:", len(elements))
+                
+                time.sleep(random.uniform(1, 3))
                                     
                                     
                                     
@@ -198,8 +184,6 @@ with sync_playwright() as p:
                     # 🛡️ Anti-block delay
                     time.sleep(random.uniform(1, 3))
 
-                except Exception as e:
-                    print("Error:", e)
 
         # 💾 SAVE AFTER EACH BATCH
         print("\n💾 Saving batch data...")
