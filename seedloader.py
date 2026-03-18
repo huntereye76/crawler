@@ -199,10 +199,8 @@
 
 
 
-
 from playwright.sync_api import sync_playwright
-from playwright_stealth import stealth
-
+from playwright_stealth import Stealth
 import urllib.parse
 import psycopg2
 import time
@@ -292,8 +290,10 @@ with sync_playwright() as p:
 
         page = context.new_page()
 
-        # ✅ CORRECT FOR VERSION 2.0.2
-        stealth(page) 
+        # ✅ CORRECT STEALTH FOR YOUR VERSION
+        stealth = Stealth()
+        stealth.apply_stealth(page)
+
         # Block heavy resources (faster scraping)
         page.route("**/*", lambda route: route.abort()
                    if route.request.resource_type in ["font", "media", "image"]
