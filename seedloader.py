@@ -178,11 +178,7 @@ with sync_playwright() as p:
                                     
                                     
                                     
-                  
-
-                    # 🛡️ Anti-block delay
-                    time.sleep(random.uniform(1, 3))
-
+                 
 
         # 💾 SAVE AFTER EACH BATCH
         print("\n💾 Saving batch data...")
