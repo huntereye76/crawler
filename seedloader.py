@@ -200,7 +200,7 @@
 
 
 from playwright.sync_api import sync_playwright
-from playwright_stealth import stealth # NEW: Added stealth
+from playwright_stealth import stealth# NEW: Added stealth
 import urllib.parse
 import re
 import psycopg2
