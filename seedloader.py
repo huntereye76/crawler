@@ -109,7 +109,11 @@ with sync_playwright() as p:
         batch = keywords[i:i+BATCH_SIZE]
         print(f"\n🚀 Processing batch {i} → {i + len(batch)}")
 
-        browser = p.chromium.launch(headless=True)
+        #browser = p.chromium.launch(headless=True)
+        browser = p.chromium.launch(
+            headless=True,
+            args=["--no-sandbox", "--disable-dev-shm-usage"]
+        )
         page = browser.new_page()
 
         # 🔥 Block unnecessary resources
