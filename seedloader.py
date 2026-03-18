@@ -199,22 +199,23 @@
 
 
 
+
+
 from playwright.sync_api import sync_playwright
-import playwright_stealth  # Use the whole module to avoid naming conflicts
+from playwright_stealth import stealth_sync
 import urllib.parse
-import re
 import psycopg2
 import time
 import random
 import os
 from keywords import keywords
 
-
 # ==============================
 # SETTINGS
 # ==============================
 EXPORT_TXT = False
 SAVE_TO_DB = True
+
 DB_URL = "postgresql://neondb_owner:npg_O8yn7oWlKCZM@ep-shy-brook-a109nwqt-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
 
 PAGES_PER_KEYWORD = 3
@@ -233,9 +234,11 @@ def load_progress():
     except:
         return 0
 
+
 def save_progress(index):
     with open(PROGRESS_FILE, "w") as f:
         f.write(str(index))
+
 
 # ==============================
 # SAVE FUNCTION
@@ -248,17 +251,21 @@ def save_links(links):
         try:
             conn = psycopg2.connect(DB_URL)
             cur = conn.cursor()
+
             for link in links:
                 cur.execute("""
                     INSERT INTO crawl_queue (url, status)
                     VALUES (%s, 'pending')
                     ON CONFLICT (url) DO NOTHING
                 """, (link,))
+
             conn.commit()
             cur.close()
             conn.close()
+
         except Exception as e:
             print(f"DB Error: {e}")
+
 
 # ==============================
 # MAIN SCRIPT
@@ -277,17 +284,20 @@ with sync_playwright() as p:
             headless=True,
             args=["--no-sandbox", "--disable-dev-shm-usage"]
         )
-        
+
         context = browser.new_context(
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
             viewport={"width": 1920, "height": 1080}
         )
-        
+
         page = context.new_page()
-        playwright_stealth.stealth(page)
-            
+
+        # ✅ FIXED STEALTH
+        stealth_sync(page)
+
+        # Block heavy resources
         page.route("**/*", lambda route: route.abort()
-                   if route.request.resource_type in ["font", "media"] 
+                   if route.request.resource_type in ["font", "media", "image"]
                    else route.continue_())
 
         for keyword in batch:
@@ -300,44 +310,58 @@ with sync_playwright() as p:
 
                 print("Searching:", url)
                 elements = []
-                
+
                 for attempt in range(3):
                     try:
-                        time.sleep(random.uniform(3, 6))
+                        time.sleep(random.uniform(2, 5))
+
                         page.goto(url, timeout=45000, wait_until="domcontentloaded")
-                        
-                        # Wait for either the results or the "No results" message
-                        page.wait_for_selector('.react-results--main, #links', timeout=20000)
-                        
-                        # Slightly scroll to trigger lazy-loaded links
+
+                        page.wait_for_selector(
+                            '.react-results--main, #links',
+                            timeout=15000
+                        )
+
+                        # Scroll slightly
                         page.mouse.wheel(0, 500)
                         time.sleep(1)
 
                         elements = page.query_selector_all('a[href*="t.me"]')
                         break
-                
+
                     except Exception as e:
-                        print(f"Retry {attempt+1} failed.")
+                        print(f"Retry {attempt+1} failed: {e}")
                         if attempt == 2:
-                            page.screenshot(path=f"error_page_{i}.png")
-                
+                            page.screenshot(path=f"error_{i}_{page_no}.png")
+
                 new_links_count = 0
+
                 for el in elements:
                     try:
                         link = el.get_attribute("href")
-                        if link:
-                            # FIXED: Proper extraction from DDG redirects
-                            if "uddg=" in link:
-                                link = urllib.parse.unquote(link.split("uddg=")[1].split("&")[0])
-                            
-                            # Standardize and filter
-                            if "t.me/" in link and link.count("/") == 3 and "+" not in link and "joinchat" not in link:
-                                if link not in found_links:
-                                    found_links.add(link)
-                                    new_links_count += 1
+                        if not link:
+                            continue
+
+                        # Extract real link from DDG redirect
+                        if "uddg=" in link:
+                            link = urllib.parse.unquote(
+                                link.split("uddg=")[1].split("&")[0]
+                            )
+
+                        # Filter Telegram links
+                        if (
+                            "t.me/" in link
+                            and link.count("/") == 3
+                            and "+" not in link
+                            and "joinchat" not in link
+                        ):
+                            if link not in found_links:
+                                found_links.add(link)
+                                new_links_count += 1
+
                     except:
                         continue
-                
+
                 print(f"Captured {new_links_count} new links.")
 
         print("\n💾 Saving batch data...")
@@ -345,8 +369,9 @@ with sync_playwright() as p:
         found_links.clear()
 
         save_progress(i + BATCH_SIZE)
+
+        context.close()
         browser.close()
 
 print("\n✅ Done")
-
 
