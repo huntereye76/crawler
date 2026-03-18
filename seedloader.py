@@ -111,7 +111,7 @@ with sync_playwright() as p:
 
         #browser = p.chromium.launch(headless=True)
         browser = p.chromium.launch(
-            headless=True,
+            headless=False,
             args=["--no-sandbox", "--disable-dev-shm-usage"]
         )
         
