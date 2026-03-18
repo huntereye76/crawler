@@ -200,7 +200,7 @@
 
 
 from playwright.sync_api import sync_playwright
-from playwright_stealth import stealth# NEW: Added stealth
+from playwright_stealth import stealth # Corrected import
 import urllib.parse
 import re
 import psycopg2
@@ -225,8 +225,6 @@ PROGRESS_FILE = "progress.txt"
 # ==============================
 def load_progress():
     if not os.path.exists(PROGRESS_FILE):
-        with open(PROGRESS_FILE, "w") as f:
-            f.write("0")
         return 0
     try:
         with open(PROGRESS_FILE, "r") as f:
@@ -261,11 +259,6 @@ def save_links(links):
         except Exception as e:
             print(f"DB Error: {e}")
 
-    if EXPORT_TXT:
-        with open("telegram_groups.txt", "a", encoding="utf-8") as f:
-            for link in links:
-                f.write(link + "\n")
-
 # ==============================
 # MAIN SCRIPT
 # ==============================
@@ -279,14 +272,9 @@ with sync_playwright() as p:
         batch = keywords[i:i+BATCH_SIZE]
         print(f"\n🚀 Processing batch {i} → {i + len(batch)}")
 
-        # NEW: Added '--headless=new' and stealth features
         browser = p.chromium.launch(
             headless=True,
-            args=[
-                "--no-sandbox", 
-                "--disable-dev-shm-usage",
-                "--disable-blink-features=AutomationControlled"
-            ]
+            args=["--no-sandbox", "--disable-dev-shm-usage"]
         )
         
         context = browser.new_context(
@@ -295,11 +283,10 @@ with sync_playwright() as p:
         )
         
         page = context.new_page()
-        stealth(page)  # NEW: Apply stealth to this page
+        stealth(page) 
 
-        # Block unnecessary resources (careful: blocking too much can trigger bot detection)
         page.route("**/*", lambda route: route.abort()
-                   if route.request.resource_type in ["font", "media"] # Keep images for better human-like behavior
+                   if route.request.resource_type in ["font", "media"] 
                    else route.continue_())
 
         for keyword in batch:
@@ -308,62 +295,57 @@ with sync_playwright() as p:
             for page_no in range(PAGES_PER_KEYWORD):
                 start = page_no * 10
                 query = f"site:t.me {keyword}"
-                # NEW: Using main URL instead of /html/ which is more prone to IP blocks
-                url = f"https://duckduckgo.com/?q={urllib.parse.quote(query)}&s={start}&df=y"
+                url = f"https://duckduckgo.com/?q={urllib.parse.quote(query)}&s={start}&dc={start}"
 
                 print("Searching:", url)
                 elements = []
                 
                 for attempt in range(3):
                     try:
-                        # Add a small delay before navigating
-                        time.sleep(random.uniform(2, 4))
-                        
+                        time.sleep(random.uniform(3, 6))
                         page.goto(url, timeout=45000, wait_until="domcontentloaded")
                         
-                        # Wait for the results container (DuckDuckGo uses 'react-layout-main' or similar)
-                        # Instead of just the link, we wait for the page to load
-                        page.wait_for_selector('div.react-results--main', timeout=20000)
+                        # Wait for either the results or the "No results" message
+                        page.wait_for_selector('.react-results--main, #links', timeout=20000)
                         
-                        # Find all t.me links
+                        # Slightly scroll to trigger lazy-loaded links
+                        page.mouse.wheel(0, 500)
+                        time.sleep(1)
+
                         elements = page.query_selector_all('a[href*="t.me"]')
                         break
                 
                     except Exception as e:
-                        print(f"Retry {attempt+1} failed. Potential block or timeout.")
+                        print(f"Retry {attempt+1} failed.")
                         if attempt == 2:
-                            # Save a screenshot for debugging
-                            page.screenshot(path=f"error_keyword_{i}.png")
-                            print("Skipping this page...")
-
-                new_links = []
+                            page.screenshot(path=f"error_page_{i}.png")
+                
+                new_links_count = 0
                 for el in elements:
                     try:
                         link = el.get_attribute("href")
-                        # Handle DDG proxy links (extract the t.me part)
-                        if link and "t.me/" in link:
-                            # Clean the URL if it's wrapped in a DDG redirect
+                        if link:
+                            # FIXED: Proper extraction from DDG redirects
                             if "uddg=" in link:
                                 link = urllib.parse.unquote(link.split("uddg=")[1].split("&")[0])
                             
-                            if link.count("/") == 3 and "+" not in link and "joinchat" not in link:
+                            # Standardize and filter
+                            if "t.me/" in link and link.count("/") == 3 and "+" not in link and "joinchat" not in link:
                                 if link not in found_links:
                                     found_links.add(link)
-                                    new_links.append(link)
+                                    new_links_count += 1
                     except:
                         continue
                 
-                print(f"Found {len(new_links)} new links on this page.")
-                time.sleep(random.uniform(3, 6)) # More human-like pause
+                print(f"Captured {new_links_count} new links.")
 
-        # 💾 SAVE AFTER EACH BATCH
         print("\n💾 Saving batch data...")
         save_links(found_links)
-        print(f"Saved total {len(found_links)} links for this batch")
         found_links.clear()
 
-        # 🔄 SAVE PROGRESS
         save_progress(i + BATCH_SIZE)
         browser.close()
 
 print("\n✅ Done")
+
+
