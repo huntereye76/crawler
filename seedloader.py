@@ -200,7 +200,7 @@
 
 
 from playwright.sync_api import sync_playwright
-from playwright_stealth import stealth # Corrected import
+import playwright_stealth  # Use the whole module to avoid naming conflicts
 import urllib.parse
 import re
 import psycopg2
@@ -208,6 +208,7 @@ import time
 import random
 import os
 from keywords import keywords
+
 
 # ==============================
 # SETTINGS
@@ -283,8 +284,8 @@ with sync_playwright() as p:
         )
         
         page = context.new_page()
-        stealth(page) 
-
+        playwright_stealth.stealth(page)
+            
         page.route("**/*", lambda route: route.abort()
                    if route.request.resource_type in ["font", "media"] 
                    else route.continue_())
